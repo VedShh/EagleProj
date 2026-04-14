@@ -1,3 +1,8 @@
+# OVERRIDE SQLITE3 FOR CHROMADB ON GOOGLE CLOUD
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 #Imports for Baseline QA Pipeline
 import subprocess
 from langchain_community.document_loaders import PyPDFLoader # for loading the pdf
@@ -26,7 +31,7 @@ load_dotenv()
 
 class HistoryChatBot:
     def __init__(self):
-        self.doc = "tutor_textbook.pdf"
+        self.doc = "/tmp/tutor_textbook.pdf"
         self.loader = PyPDFLoader(self.doc)
 
         # Load the document and store it in the 'data' variable
@@ -34,7 +39,7 @@ class HistoryChatBot:
 
         self.embeddings = OpenAIEmbeddings()
         self.vectordb = Chroma.from_documents(self.data, embedding=self.embeddings,
-                                 persist_directory=".")
+                                 persist_directory="/tmp")
 
         # Initialize a language model with ChatOpenAI
         self.llm = ChatOpenAI(model_name= 'gpt-4o', temperature=0.6)
@@ -100,7 +105,7 @@ class HistoryChatBot:
 #Setup Base QA system pipeline
 class BaseQAPipeline:
     def __init__(self):
-        self.doc = "tutor_textbook.pdf"
+        self.doc = "/tmp/tutor_textbook.pdf"
         self.loader = PyPDFLoader(self.doc)
 
         # Load the document and store it in the 'data' variable
@@ -108,7 +113,7 @@ class BaseQAPipeline:
 
         self.embeddings = OpenAIEmbeddings()
         self.vectordb = Chroma.from_documents(self.data, embedding=self.embeddings,
-                                 persist_directory=".")
+                                 persist_directory="/tmp")
 
         # Initialize a language model with ChatOpenAI
         self.llm = ChatOpenAI(model_name= 'gpt-4o', temperature=0.6)
@@ -203,7 +208,7 @@ class BaseQAPipeline:
 # #Setup GenerateStudyPlan pipeline
 class GenerateStudyPlan:
     def __init__(self):
-        self.doc = "tutor_textbook.pdf"
+        self.doc = "/tmp/tutor_textbook.pdf"
         self.loader = PyPDFLoader(self.doc)
 
         # Load the document and store it in the 'data' variable
@@ -211,7 +216,7 @@ class GenerateStudyPlan:
 
         self.embeddings = OpenAIEmbeddings()
         self.vectordb = Chroma.from_documents(self.data, embedding=self.embeddings,
-                                 persist_directory=".")
+                                 persist_directory="/tmp")
 
         # Initialize a language model with ChatOpenAI
         self.llm = ChatOpenAI(model_name= 'gpt-4o', temperature=0.6)
@@ -295,7 +300,7 @@ class GenerateStudyPlan:
 # #Setup Summarizer pipeline
 class Summarizer:
     def __init__(self):
-        self.doc = "tutor_textbook.pdf"
+        self.doc = "/tmp/tutor_textbook.pdf"
         self.loader = PyPDFLoader(self.doc)
 
         # Load the document and store it in the 'data' variable
@@ -303,7 +308,7 @@ class Summarizer:
 
         self.embeddings = OpenAIEmbeddings()
         self.vectordb = Chroma.from_documents(self.data, embedding=self.embeddings,
-                                 persist_directory=".")
+                                 persist_directory="/tmp")
 
         # Initialize a language model with ChatOpenAI
         self.llm = ChatOpenAI(model_name= 'gpt-4o', temperature=0.6)
@@ -398,7 +403,7 @@ class Summarizer:
 # #Setup Quiz pipeline
 class QuizAI:
     def __init__(self):
-        self.doc = "tutor_textbook.pdf"
+        self.doc = "/tmp/tutor_textbook.pdf"
         self.loader = PyPDFLoader(self.doc)
 
         # Load the document and store it in the 'data' variable
@@ -406,7 +411,7 @@ class QuizAI:
 
         self.embeddings = OpenAIEmbeddings()
         self.vectordb = Chroma.from_documents(self.data, embedding=self.embeddings,
-                                 persist_directory=".")
+                                 persist_directory="/tmp")
 
         # Initialize a language model with ChatOpenAI
         self.llm = ChatOpenAI(model_name= 'gpt-4o', temperature=0.6)
@@ -421,8 +426,7 @@ class QuizAI:
         no query has been provided, use the whole textbook and pick topics at random.
 
         Your response format will ALWAYS be this:
-        *** 
-        Query: (THE USER'S QUERY GOES HERE)
+        *** Query: (THE USER'S QUERY GOES HERE)
         Quiz Question: (YOUR GENERATED QUIZ QUESTION GOES HERE)
         Quiz Correct Answer: (YOUR GENERATED QUIZ ANSWER GOES HERE)
         Quiz Incorrect Answer: (YOUR GENERATED QUIZ ANSWER GOES HERE)
@@ -501,7 +505,7 @@ import time, threading,requests
 from waitress import serve
 import gunicorn
 
-filepath = "./tutor_textbook.pdf"
+filepath = "/tmp/tutor_textbook.pdf"
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx', 'png', 'jpg', 'jpeg', 'gif'}
 QUIZGENERATED = False
 
@@ -523,7 +527,7 @@ def tutor_ai():
     global url_data, prompt_data
 
     if request.method == "POST":
-        file_name = "tutor_textbook.pdf"
+        file_name = "/tmp/tutor_textbook.pdf"
         url_data = request.form.get("url")
 
         if 'file' not in request.files and not url_data:
@@ -572,7 +576,7 @@ def summarizer():
           file.save(filepath)
           print("File saved:", filepath)
         if (url_data != ""):
-            subprocess.check_call("curl", url_data, ">", "tutor_textbook.pdf")
+            subprocess.check_call("curl", url_data, ">", "/tmp/tutor_textbook.pdf")
         print("File: ",file)
         prompt_data = request.form.get("prompt")
         base_qa_pipeline = Summarizer()
@@ -627,7 +631,7 @@ def quiz_maker():
         result_text = result['result']
         quizzes = result_text.split("***")
         parsed_quizzes = []
-        quiz_filepath = "static/quiz-data.json"
+        quiz_filepath = "/tmp/quiz-data.json"
 
         for quiz in quizzes:
             lines = [line.strip() for line in quiz.split("\n") if line.strip()]
@@ -668,7 +672,7 @@ def quiz_maker():
 
 @app.route('/generated-quiz', methods=['GET'])
 def generated_quiz():
-    return render_template('generated-quiz.html', quizfile="static/quiz-data.json")
+    return render_template('generated-quiz.html', quizfile="/tmp/quiz-data.json")
 
 # Below is an implementation of clearing the storage for the user. NOT IMPLEMENTED YET
 clear_signal = False
@@ -693,7 +697,7 @@ def get_clear_status():
 
 @app.route('/tutor_textbook', methods=['GET'])
 def tutor_textbook():
-    return send_from_directory(os.getcwd(), 'tutor_textbook.pdf')
+    return send_from_directory('/tmp', 'tutor_textbook.pdf')
 
 if __name__ == "__main__":
     host = '0.0.0.0'
@@ -705,4 +709,4 @@ if __name__ == "__main__":
     #below code right now is to debug
     # print("Server is running...")
     # app.run(port=8081,debug=True)
-    # print("Stopping server...") 
+    # print("Stopping server...")
